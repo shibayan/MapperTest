@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="ExpressionMapper.cs" />
     <Compile Include="DescriptorMapper.cs" />
+    <Compile Include="MicroMapper.cs" />
     <Compile Include="StandardMapper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -37,6 +37,9 @@ namespace MapperTest
 
             Do(ExpressionMapperTest);
 
+            Watch(MicroMapperPrepare);
+            Do(MicroMapperTest);
+
 
             Console.WriteLine("\n << end >>");
             Console.Read();
@@ -109,6 +112,23 @@ namespace MapperTest
         static void ExpressionMapperTest(MyClass src, MyClass dst)
         {
             ExpressionMapper.Map(src, dst);
+        }
+
+        private static MicroMapper.Mapper _mapper;
+
+        static void MicroMapperPrepare()
+        {
+            var config = new MicroMapper.MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<MyClass, MyClass>();
+            });
+
+            _mapper = config.CreateMapper();
+        }
+
+        static void MicroMapperTest(MyClass src, MyClass dst)
+        {
+            _mapper.Map(src, dst);
         }
     }
 }
