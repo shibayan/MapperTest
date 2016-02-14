@@ -58,12 +58,7 @@ namespace MicroMapper
             var destinationType = typeof(TDestination);
 
             var cacheKey = $"{sourceType.FullName}_{destinationType.FullName}";
-
-            if (!_mapperCache.ContainsKey(cacheKey))
-            {
-                throw new InvalidOperationException();
-            }
-
+            
             return (Action<TSource, TDestination>)_mapperCache[cacheKey];
         }
     }
@@ -148,48 +143,41 @@ namespace MicroMapper
             var sourceParameter = Expression.Parameter(typeof(TSource), "source");
             var destinationParameter = Expression.Parameter(typeof(TDestination), "destination");
 
-            var assignExpressions = new List<Expression>();
+            var assigns = new List<Expression>();
 
             foreach (var member in _members.Where(x => !x.Value.IsIgnore))
             {
-                try
+                var source = member.Value.CustomMapper == null ? (Expression)Expression.Property(sourceParameter, member.Key) : Expression.Invoke(member.Value.CustomMapper, sourceParameter);
+                var destination = Expression.Property(destinationParameter, member.Key);
+
+                var sourceType = member.Value.SourceType;
+                var destinationType = member.Value.DestinationType;
+
+                if (sourceType == destinationType)
                 {
-                    var left = Expression.Property(destinationParameter, member.Key);
-                    var valueExpression = member.Value.CustomMapper == null ? (Expression)Expression.Property(sourceParameter, member.Key) : Expression.Invoke(member.Value.CustomMapper, sourceParameter);
-
-                    var sourceType = member.Value.SourceType;
-                    var destinationType = member.Value.DestinationType;
-
-                    if (sourceType == destinationType)
-                    {
-                        assignExpressions.Add(Expression.Assign(left, valueExpression));
-                    }
-                    else
-                    {
-                        var sourceUnderlyingType = Nullable.GetUnderlyingType(member.Value.SourceType);
-                        var destinationUnderlyingType = Nullable.GetUnderlyingType(member.Value.DestinationType);
-                        
-                        if (sourceUnderlyingType != null && destinationUnderlyingType == null)
-                        {
-                            assignExpressions.Add(Expression.Assign(left, Expression.Call(valueExpression, "GetValueOrDefault", null)));
-                        }
-                        else if (sourceUnderlyingType == null && destinationUnderlyingType != null)
-                        {
-                            assignExpressions.Add(ExpressionHelper.IfAssign(ExpressionHelper.IsNotNull(valueExpression), left, ExpressionHelper.ChangeType(valueExpression, destinationType)));
-                        }
-                        else if (typeof(IConvertible).IsAssignableFrom(destinationType) && typeof(IConvertible).IsAssignableFrom(sourceType))
-                        {
-                            assignExpressions.Add(Expression.Assign(left, ExpressionHelper.ChangeType(valueExpression, destinationType)));
-                        }
-                    }
+                    assigns.Add(Expression.Assign(destination, source));
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine(ex);
+                    var sourceUnderlyingType = Nullable.GetUnderlyingType(member.Value.SourceType);
+                    var destinationUnderlyingType = Nullable.GetUnderlyingType(member.Value.DestinationType);
+
+                    if (sourceUnderlyingType != null && destinationUnderlyingType == null)
+                    {
+                        assigns.Add(Expression.Assign(destination, Expression.Call(source, "GetValueOrDefault", null)));
+                    }
+                    else if (sourceUnderlyingType == null && destinationUnderlyingType != null)
+                    {
+                        assigns.Add(ExpressionHelper.IfAssign(ExpressionHelper.IsNotNull(source), destination, ExpressionHelper.ChangeType(source, destinationType)));
+                    }
+                    else if (typeof(IConvertible).IsAssignableFrom(destinationType) && typeof(IConvertible).IsAssignableFrom(sourceType))
+                    {
+                        assigns.Add(Expression.Assign(destination, ExpressionHelper.ChangeType(source, destinationType)));
+                    }
                 }
             }
 
-            var lambda = Expression.Lambda<Action<TSource, TDestination>>(Expression.Block(assignExpressions), sourceParameter, destinationParameter);
+            var lambda = Expression.Lambda<Action<TSource, TDestination>>(Expression.Block(assigns), sourceParameter, destinationParameter);
 
             return lambda.Compile();
         }

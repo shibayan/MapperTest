@@ -23,9 +23,8 @@ namespace MapperTest
             foreach (var prop in destProperties)
             {
                 var srcProp =
-                    srcProperties.OfType<PropertyDescriptor>().Where(p => p.Name == prop.Name &&
-                                                                          (prop.PropertyType.IsAssignableFrom(p.PropertyType) || prop.PropertyType.IsEnum))
-                                 .FirstOrDefault();
+                    srcProperties.OfType<PropertyDescriptor>()
+                                 .FirstOrDefault(p => p.Name == prop.Name && (prop.PropertyType.IsAssignableFrom(p.PropertyType) || prop.PropertyType.IsEnum));
                 if (srcProp == null)
                     continue;
 
