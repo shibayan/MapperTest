@@ -8,12 +8,12 @@ namespace MicroMapper
 {
     public class Mapper
     {
-        internal Mapper(Dictionary<string, object> mapperCache)
+        internal Mapper(Dictionary<long, object> mapperCache)
         {
             _mapperCache = mapperCache;
         }
 
-        private readonly Dictionary<string, object> _mapperCache;
+        private readonly Dictionary<long, object> _mapperCache;
 
         public TDestination Map<TSource, TDestination>(TSource source) where TDestination : new()
         {
@@ -57,7 +57,7 @@ namespace MicroMapper
             var sourceType = typeof(TSource);
             var destinationType = typeof(TDestination);
 
-            var cacheKey = $"{sourceType.FullName}_{destinationType.FullName}";
+            var cacheKey = MapperHelper.GetCacheKey(sourceType, destinationType);
             
             return (Action<TSource, TDestination>)_mapperCache[cacheKey];
         }
@@ -212,6 +212,17 @@ namespace MicroMapper
         }
     }
 
+    public static class MapperHelper
+    {
+        public static long GetCacheKey(Type sourceType, Type destinationType)
+        {
+            var sourceHashCode = (ulong)sourceType.GetHashCode();
+            var destinationHashCode = (ulong)destinationType.GetHashCode();
+
+            return (long)(sourceHashCode << 32 | destinationHashCode);
+        }
+    }
+
     public class MapperConfiguration
     {
         public MapperConfiguration(Action<MapperConfiguration> config)
@@ -219,7 +230,7 @@ namespace MicroMapper
             config(this);
         }
 
-        private readonly Dictionary<string, IMappingExpression> _mappings = new Dictionary<string, IMappingExpression>();
+        private readonly Dictionary<long, IMappingExpression> _mappings = new Dictionary<long, IMappingExpression>();
 
         public MappingExpression<TSource, TDestination> CreateMap<TSource, TDestination>()
         {
@@ -228,7 +239,7 @@ namespace MicroMapper
             var sourceType = typeof(TSource);
             var destinationType = typeof(TDestination);
 
-            var cacheKey = $"{sourceType.FullName}_{destinationType.FullName}";
+            var cacheKey = MapperHelper.GetCacheKey(sourceType, destinationType);
 
             _mappings.Add(cacheKey, mapping);
 

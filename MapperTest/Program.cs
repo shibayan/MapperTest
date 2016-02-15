@@ -33,6 +33,9 @@ namespace MapperTest
             Watch(() => AutoMapper.Mapper.CreateMap<MyClass, MyClass>());
             Do(AutoMapperTest);
 
+            Watch(() => ExpressMapper.Mapper.Register<MyClass, MyClass>());
+            Do(ExpressMapperTest);
+
             Do(DescriptorMapperTest);
 
             Do(ExpressionMapperTest);
@@ -102,6 +105,11 @@ namespace MapperTest
         static void AutoMapperTest(MyClass src, MyClass dst)
         {
             AutoMapper.Mapper.Map(src, dst);
+        }
+
+        static void ExpressMapperTest(MyClass src, MyClass dst)
+        {
+            ExpressMapper.Mapper.Map(src, dst);
         }
 
         static void DescriptorMapperTest(MyClass src, MyClass dst)
